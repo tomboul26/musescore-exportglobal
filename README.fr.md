@@ -4,6 +4,15 @@
 
 Conçu pour les fanfares, harmonies et ensembles à vent, où la même voix doit souvent être distribuée à plusieurs instruments : une partie de flûte aussi en Sib pour une clarinette, une partie de sousaphone aussi en clé de sol pour un saxophone baryton, etc. Ces parties sont fabriquées à l'export, **sans ajouter d'instrument à la partition**.
 
+
+![Fenêtre d'export](screenshots/export-window.png)
+
+*La fenêtre d'export : parties transposées avec leur tessiture lue (et une alerte quand une partie semble à la mauvaise octave), formats, instruments et dossier d'export.*
+
+| Choix des instruments | Parties transposées déclarées dans les propriétés |
+|---|---|
+| ![Choix des instruments](screenshots/instrument-selection.png) | ![Propriétés de la partition](screenshots/score-properties.png) |
+
 ---
 
 ## Fonctionnalités

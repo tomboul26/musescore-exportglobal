@@ -6,6 +6,15 @@ Built for brass bands, concert bands and wind ensembles, where the same line oft
 
 > **Note:** the plugin's interface and the exported file names are currently in French. This guide gives the French labels with their meaning.
 
+
+![Export window](screenshots/export-window.png)
+
+*The export window: transposed parts with their written range (and a warning when a part looks an octave off), formats, instruments and export folder.*
+
+| Choosing instruments | Declaring transposed parts in Score properties |
+|---|---|
+| ![Instrument selection](screenshots/instrument-selection.png) | ![Score properties](screenshots/score-properties.png) |
+
 ---
 
 ## Features
