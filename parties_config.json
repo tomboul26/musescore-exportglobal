@@ -1,0 +1,15 @@
+{
+  "confirmation": true,
+  "musescore": "",
+  "formats": [
+    "pdfunique",
+    "png",
+    "mid",
+    "mp3"
+  ],
+  "formats_v": 2,
+  "dossier_sortie": "{titre} - export",
+  "ouvrir_dossier": true,
+  "dossier_arrangements": "",
+  "voix": {}
+}
