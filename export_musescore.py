@@ -2,6 +2,9 @@
 # -*- coding: utf-8 -*-
 # Export global — plugin pour MuseScore Studio 4
 # Copyright (c) 2026 Thomas Boulenger — licence MIT (voir le fichier LICENSE)
+# Page du plugin : https://musescore.org/en/project/export-global-score-parts-transposed-parts-one-click-pdf-png-midi-mp3
+# Code source    : https://github.com/tomboul26/musescore-exportglobal
+# Forum          : https://musescore.org/en/node/396305
 """
 Export global MuseScore 4 (PDF conducteur + parties, PNG, MIDI, MP3)
 avec génération de parties « dérivées » transposées pour d'autres instruments.
