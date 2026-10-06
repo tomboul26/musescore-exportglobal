@@ -4,16 +4,7 @@
 
 Built for brass bands, concert bands and wind ensembles, where the same line often has to go to several instruments: a flute part also in B♭ for a clarinet, a sousaphone part also in treble clef for a baritone sax, and so on. These extra parts are generated at export time, **without adding any instrument to the score**.
 
-> **Note:** the plugin's interface and the exported file names are currently in French. This guide gives the French labels with their meaning.
-
-
-![Export window](screenshots/export-window.png)
-
-*The export window: transposed parts with their written range (and a warning when a part looks an octave off), formats, instruments and export folder.*
-
-| Choosing instruments | Declaring transposed parts in Score properties |
-|---|---|
-| ![Instrument selection](screenshots/instrument-selection.png) | ![Score properties](screenshots/score-properties.png) |
+> **Language:** the plugin follows MuseScore's interface language: French when MuseScore is in French, English otherwise. The `"langue"` setting can force `"fr"` or `"en"` (see *Settings*).
 
 ---
 
@@ -74,21 +65,12 @@ Plugins\
 1. Open the score. It must have been saved at least once.
 2. Press the shortcut, or use *Plugins > Export global*.
 3. The score is saved, then the **export window** opens:
-   - **Parties transposées** (transposed parts): a tree of the score's instruments and the parts derived from them, with key, clef and written range.
-   - **Formats à exporter** (formats): the check boxes, as listed in the table below. Your choice is remembered for next time.
-
-     | Label | Meaning |
-     |---|---|
-     | *PDF unique* | single PDF of the score and parts |
-     | *PDF séparés* | one PDF per part |
-     | *PNG* | page images |
-     | *MIDI* | MIDI file of the score |
-     | *Audio MP3* | MP3 audio of the score |
-
-   - **Instruments à exporter** (instruments): the **Instruments…** button opens a check list. **Tous les instruments** (all instruments) checks or unchecks everything. The list is grouped into *Conducteur* (full score), *Parties* (parts) and *Parties transposées* (transposed parts).
-   - **Dossier d'export** (export folder): if an export already exists, choose *Écraser* (overwrite) or *créer* a new folder.
-4. Click **Exporter**. You can keep working in MuseScore during the export.
-5. When it is done, click **Ouvrir le dossier** (open folder).
+   - **Transposed parts**: a tree of the score's instruments and the parts derived from them, with key, clef and written range.
+   - **Formats to export**: single PDF (score + parts), separate PDFs, PNG, MIDI, MP3. Your choice is remembered for next time.
+   - **Instruments to export**: the **Instruments…** button opens a check list. **All instruments** checks or unchecks everything. The list is grouped into *Full score*, *Parts* and *Transposed parts*.
+   - **Export folder**: if an export already exists, choose to overwrite it or to create a new folder.
+4. Click **Export**. You can keep working in MuseScore during the export.
+5. When it is done, click **Open folder**.
 
 ### Output files
 
@@ -96,11 +78,11 @@ In `<title> - export\`, next to the `.mscz`:
 
 | File | Content |
 |---|---|
-| `<title> - conducteur et parties.pdf` | Full score and all parts in one PDF |
-| `<title> - parties choisies.pdf` | Single PDF when only some instruments are exported |
+| `<title> - score and parts.pdf` | Full score and all parts in one PDF |
+| `<title> - selected parts.pdf` | Single PDF when only some instruments are exported |
 | `<title>.pdf` | Full score |
 | `<title> - Trumpet.pdf` | A part of the score |
-| `<title> - Flute Bb clef de sol.pdf` | A transposed part ("clef de sol" = treble clef, "clef de fa" = bass clef) |
+| `<title> - Flute Bb treble clef.pdf` | A transposed part |
 | `<title>-1.png`, `-2.png`… | Page images, or `<title>.png` for a single page |
 | `<title>.mid`, `<title>.mp3` | Audio of the full score |
 
@@ -123,8 +105,8 @@ They are declared **in the score itself**, in *File > Score properties*, then **
 
 | Property | Value | Resulting parts |
 |---|---|---|
-| `Flute` | `Bb g ; Alto sax = Eb g` | Flute Bb clef de sol, Alto sax Eb clef de sol |
-| `Trombone` | `Bb f ; C g +1` | Trombone Bb clef de fa, Trombone C clef de sol |
+| `Flute` | `Bb g ; Alto sax = Eb g` | Flute Bb treble clef, Alto sax Eb treble clef |
+| `Trombone` | `Bb f ; C g +1` | Trombone Bb bass clef, Trombone C treble clef |
 | `Sousaphone` | `Bass C = C f8vb ; Bass Bb = Bb g15mb ; Baritone = Eb g15mb -1` | three bass parts |
 
 ### Vocabulary
@@ -132,11 +114,11 @@ They are declared **in the score itself**, in *File > Score properties*, then **
 | Item | Accepted values |
 |---|---|
 | **Key** (first word) | `C`, `Bb`, `Eb`, `F`, `A`, `G`; French names `Ut`/`Do`, `Sib`, `Mib`, `Fa`, `La`, `Sol` also work |
-| **Clef** | `g` (treble), `f` (bass), `c3` (alto), `c4` (tenor). Octave clefs: `g8vb`, `f8vb` (8 below), `g15mb`, `f15mb` (15 below). French `sol`, `fa`, `ut3`, `ut4`, `sol8`, `fa8`, `sol15`, `fa15` also work |
+| **Clef** | `g` or `treble`, `f` or `bass`, `c3` (alto), `c4` (tenor). Octave clefs: `g8vb`, `f8vb` (8 below), `g15mb`, `f15mb` (15 below). French `sol`, `fa`, `ut3`, `ut4`, `sol8`, `fa8`, `sol15`, `fa15` also work |
 | **Octave** | `+1`, `+2`, `-1`… on top of the instrument's transposition |
 
 - The first word is always the key.
-- The file name is completed automatically with key and clef, for example "Trombone Bb clef de sol". If the key is already in the name ("Bass Bb"), it is not repeated.
+- The part name is completed automatically with key and clef, for example "Trombone Bb treble clef". If the key or the clef is already in the name ("Bass Bb"), it is not repeated. Set `"clef_dans_nom": false` to leave the clef out of the name.
 - These properties are **stored inside the `.mscz`**: they travel with the score when it is copied, sent or renamed.
 
 ### Common instruments
@@ -152,7 +134,7 @@ They are declared **in the score itself**, in *File > Score properties*, then **
 | French horn | `F g` |
 | Trombone, euphonium, tuba in bass clef (concert pitch) | `C f` |
 
-**Check the written range column** (*Tessiture lue*) in the export window. It shows the lowest and highest notes as they will be written, in French notation: do3 = middle C. A warning appears when a part looks too high or too low for its clef; this usually means a `+1` or `-1` should be added or removed.
+**Check the Written range column** in the export window. It shows the lowest and highest notes as they will be written (C4 = middle C). A warning appears when a part looks too high or too low for its clef; this usually means a `+1` or `-1` should be added or removed.
 
 ---
 
@@ -162,9 +144,11 @@ The `parties_config.json` file, in the plugin folder:
 
 | Key | Purpose | Default |
 |---|---|---|
+| `"langue"` | Interface language: `"auto"` (MuseScore's language), `"fr"` or `"en"` | `"auto"` |
+| `"clef_dans_nom"` | `false` to leave the clef out of transposed part names ("Trumpet C" instead of "Trumpet C treble clef") | `true` |
 | `"confirmation"` | `false` to export straight away, without the confirmation window | `true` |
 | `"formats"` | Formats checked by default: `pdfunique`, `pdf`, `png`, `mid`, `mp3` | last used |
-| `"dossier_sortie"` | Export folder name | `"{titre} - export"` |
+| `"dossier_sortie"` | Export folder name (`{titre}` = score title) | `"{titre} - export"` |
 | `"musescore"` | Path to `MuseScore4.exe`, if not found automatically | (automatic) |
 | `"voix"` | Default transposed parts, for scores without properties | `{}` |
 
@@ -176,7 +160,6 @@ If the `pyw` launcher is not found, put the path to `pythonw.exe` in `export_glo
 
 - Clef changes in the middle of a piece are not copied into transposed parts.
 - An instrument with several staves (piano, harp…) cannot be used as the source of a transposed part.
-- The interface and the file names are in French.
 - Tested on Windows with MuseScore Studio 4.7. macOS and Linux have not been tested yet.
 
 ---
@@ -186,9 +169,9 @@ If the `pyw` launcher is not found, put the path to `pythonw.exe` in `export_glo
 | Problem | Solution |
 |---|---|
 | Nothing happens when pressing the shortcut | Check that Python is installed with the "py launcher" and that the plugin is enabled |
-| "Partition … introuvable" (score not found) | Save the score once (*File > Save as*) |
-| "Aucune partie transposée" (no transposed part) | Check that the property name is exactly the instrument name in the score |
-| "mot non compris" (word not understood) | A property value contains an unknown word: check key, clef and octave |
+| "Score … not found" | Save the score once (*File > Save as*) |
+| "No transposed part" | Check that the property name is exactly the instrument name in the score |
+| "word not understood" | A property value contains an unknown word: check key, clef and octave |
 | No single PDF | Install the PDF module: `py -m pip install pypdf` |
 
 ---

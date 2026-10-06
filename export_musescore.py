@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Export global — plugin pour MuseScore Studio 4
-# Copyright (c) 2026 Thomas Boulenger — licence MIT (voir le fichier LICENSE)
-# Page du plugin : https://musescore.org/en/project/export-global-score-parts-transposed-parts-one-click-pdf-png-midi-mp3
-# Code source    : https://github.com/tomboul26/musescore-exportglobal
-# Forum          : https://musescore.org/en/node/396305
+# Export global — plugin for MuseScore Studio 4 / plugin pour MuseScore Studio 4
+# Copyright (c) 2026 Thomas Boulenger — MIT licence (see LICENSE / voir le fichier LICENSE)
 """
 Export global MuseScore 4 (PDF conducteur + parties, PNG, MIDI, MP3)
 avec génération de parties « dérivées » transposées pour d'autres instruments.
@@ -20,6 +17,13 @@ Principe :
   4. La copie temporaire est supprimée. Le fichier d'origine n'est jamais modifié.
 
 Aucune dépendance : Python 3.8+ suffit.
+Interface en français ou en anglais selon la langue de MuseScore
+(réglage "langue" de parties_config.json : "auto", "fr" ou "en").
+
+voir https://musescore.org/en/project/export-global-score-parts-transposed-parts-one-click-pdf-png-midi-mp3
+forum : https://musescore.org/en/node/396303 https://musescore.org/en/node/396305
+GIT : https://github.com/tomboul26/musescore-exportglobal
+
 """
 
 import base64
@@ -38,6 +42,78 @@ import xml.etree.ElementTree as ET
 
 ICI = os.path.dirname(os.path.abspath(__file__))
 FICHIER_CONFIG = os.path.join(ICI, "parties_config.json")
+
+
+# ---------------------------------------------------------------------------
+#  Langue de l'interface / interface language
+# ---------------------------------------------------------------------------
+def langue_systeme():
+    """Langue du système (Windows : langue de l'interface utilisateur)."""
+    try:
+        if platform.system() == "Windows":
+            import ctypes
+            import locale
+            code = ctypes.windll.kernel32.GetUserDefaultUILanguage()
+            return (locale.windows_locale.get(code) or "en")[:2]
+    except Exception:
+        pass
+    for var in ("LC_ALL", "LC_MESSAGES", "LANG", "LANGUAGE"):
+        v = os.environ.get(var)
+        if v and v not in ("C", "POSIX"):
+            return v[:2].lower()
+    try:
+        import locale
+        return (locale.getlocale()[0] or "en")[:2].lower()
+    except Exception:
+        return "en"
+
+
+def langue_musescore():
+    """Langue choisie dans MuseScore (Préférences > Général > Langue), lue dans MuseScore4.ini."""
+    systeme = platform.system()
+    if systeme == "Windows":
+        bases = [os.path.join(os.environ.get("APPDATA", ""), "MuseScore")]
+    elif systeme == "Darwin":
+        bases = [os.path.expanduser("~/Library/Preferences/MuseScore"),
+                 os.path.expanduser("~/Library/Preferences/org.musescore")]
+    else:
+        bases = [os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")), "MuseScore")]
+    for b in bases:
+        try:
+            with open(os.path.join(b, "MuseScore4.ini"), encoding="utf-8", errors="replace") as f:
+                for ligne in f:
+                    m = re.match(r"\s*language\s*=\s*(\S+)", ligne)
+                    if m:
+                        v = m.group(1).strip().lower()
+                        return None if v in ("system", "") else v[:2]
+        except OSError:
+            continue
+    return None
+
+
+def choisir_langue():
+    try:
+        with open(FICHIER_CONFIG, encoding="utf-8") as f:
+            reglage = str(json.load(f).get("langue", "auto")).lower()
+    except Exception:
+        reglage = "auto"
+    if reglage in ("fr", "en"):
+        return reglage
+    lg = langue_musescore() or langue_systeme()
+    return "fr" if lg == "fr" else "en"
+
+
+LANGUE = choisir_langue()
+try:                                    # clé dans le nom des parties transposées (« Tuba Bb clef de sol »)
+    with open(FICHIER_CONFIG, encoding="utf-8") as _f:
+        CLEF_DANS_NOM = bool(json.load(_f).get("clef_dans_nom", True))
+except Exception:
+    CLEF_DANS_NOM = True
+
+
+def T(fr, en):
+    """Texte dans la langue de l'interface."""
+    return fr if LANGUE == "fr" else en
 
 # ---------------------------------------------------------------------------
 #  Théorie : transpositions
@@ -104,28 +180,39 @@ CLES = {"g": "G", "sol": "G", "f": "F", "fa": "F", "c3": "C3", "ut3": "C3",
         "g8vb": "G8vb", "sol8": "G8vb", "sol8vb": "G8vb",
         "f8vb": "F8vb", "fa8": "F8vb", "fa8vb": "F8vb",
         "g15mb": "G15mb", "sol15": "G15mb", "sol15mb": "G15mb",
-        "f15mb": "F15mb", "fa15": "F15mb", "fa15mb": "F15mb"}
-NOMS_CLES = {"G": "clef de sol", "F": "clef de fa", "C3": "clef d'ut 3", "C4": "clef d'ut 4",
-             "C1": "clef d'ut 1", "G8vb": "clef de sol 8", "F8vb": "clef de fa 8",
-             "G15mb": "clef de sol 15", "F15mb": "clef de fa 15"}
-# famille de clef pour le nom des fichiers (« Basse Bb clef de sol »)
-FAMILLE_CLE = {"G": "clef de sol", "G8vb": "clef de sol", "G15mb": "clef de sol",
-               "F": "clef de fa", "F8vb": "clef de fa", "F15mb": "clef de fa",
-               "C1": "clef d'ut 1", "C3": "clef d'ut 3", "C4": "clef d'ut 4"}
+        "f15mb": "F15mb", "fa15": "F15mb", "fa15mb": "F15mb",
+        # noms anglais
+        "treble": "G", "bass": "F"}
+NOMS_CLES = T({"G": "clef de sol", "F": "clef de fa", "C3": "clef d'ut 3", "C4": "clef d'ut 4",
+               "C1": "clef d'ut 1", "G8vb": "clef de sol 8", "F8vb": "clef de fa 8",
+               "G15mb": "clef de sol 15", "F15mb": "clef de fa 15"},
+              {"G": "treble clef", "F": "bass clef", "C3": "alto clef", "C4": "tenor clef",
+               "C1": "soprano clef", "G8vb": "treble clef 8vb", "F8vb": "bass clef 8vb",
+               "G15mb": "treble clef 15mb", "F15mb": "bass clef 15mb"})
+# famille de clef pour le nom des fichiers (« Basse Bb clef de sol », "Tuba Bb treble clef")
+FAMILLE_CLE_FR = {"G": "clef de sol", "G8vb": "clef de sol", "G15mb": "clef de sol",
+                  "F": "clef de fa", "F8vb": "clef de fa", "F15mb": "clef de fa",
+                  "C1": "clef d'ut 1", "C3": "clef d'ut 3", "C4": "clef d'ut 4"}
+FAMILLE_CLE_EN = {"G": "treble clef", "G8vb": "treble clef", "G15mb": "treble clef",
+                  "F": "bass clef", "F8vb": "bass clef", "F15mb": "bass clef",
+                  "C1": "soprano clef", "C3": "alto clef", "C4": "tenor clef"}
+FAMILLE_CLE = T(FAMILLE_CLE_FR, FAMILLE_CLE_EN)
 TON_EN = {"ut": "C", "sib": "Bb", "mib": "Eb", "fa": "F", "la": "A", "sol": "G"}
 
 
 def nom_complet(base, ton, cle):
     """« Basse » + Sib + sol15 -> « Basse Bb clef de sol »."""
-    suffixe = "%s %s" % (TON_EN[ton], FAMILLE_CLE.get(cle, cle))
-    if suffixe.lower() in base.lower():
-        return base
-    mots = [sans_accent(m) for m in base.split()]
-    if TON_EN[ton].lower() in mots or ton in mots:      # « Basse Bb » : la tonalité est déjà dans le nom
-        suffixe = FAMILLE_CLE.get(cle, cle)
-        if suffixe.lower() in base.lower():
+    if not CLEF_DANS_NOM:                # réglage "clef_dans_nom": false -> « Trumpet C »
+        mots = [sans_accent(m) for m in base.split()]
+        if TON_EN[ton].lower() in mots or ton in mots:
             return base
-    return "%s %s" % (base, suffixe)
+        return "%s %s" % (base, TON_EN[ton])
+    mots = [sans_accent(m) for m in base.split()]
+    ton_present = TON_EN[ton].lower() in mots or ton in mots      # « Basse Bb » : tonalité déjà dans le nom
+    # clé déjà dans le nom, en français ou en anglais (« Eupho Bb clef de Sol », "Tuba treble clef")
+    cle_presente = any(x.get(cle, "#").lower() in base.lower() for x in (FAMILLE_CLE_FR, FAMILLE_CLE_EN))
+    morceaux = ([] if ton_present else [TON_EN[ton]]) + ([] if cle_presente else [FAMILLE_CLE.get(cle, cle)])
+    return " ".join([base] + morceaux)
 # décalage visuel (en demi-tons) introduit par les clés à indication d'octave, et clé de base
 DECALAGE_CLE = {"G8vb": (12, "G"), "F8vb": (12, "F"), "G15mb": (24, "G"), "F15mb": (24, "F")}
 
@@ -154,12 +241,14 @@ def analyser_propriete(instrument, valeur):
                 cle = CLES[m]
             elif re.fullmatch(r"[+-]\d", m):
                 octave = int(m)
-            elif m in ("cle", "clef", "de", "d'", "en", "octave", "oct"):
+            elif m in ("cle", "clef", "de", "d'", "en", "octave", "oct", "in"):
                 pass
             else:
-                raise SystemExit("Propriété « parties %s » : mot non compris « %s »" % (instrument, mot))
+                raise SystemExit(T("Propriété « %s » : mot non compris « %s »",
+                                   "Property \"%s\": word not understood \"%s\"") % (instrument, mot))
         if not ton:
-            raise SystemExit("Propriété « parties %s » : tonalité manquante dans « %s »" % (instrument, morceau))
+            raise SystemExit(T("Propriété « %s » : tonalité manquante dans « %s »",
+                               "Property \"%s\": key missing in \"%s\"") % (instrument, morceau))
         nom = nom_complet(nom or instrument, ton, cle)
         resultat.append({"nom": nom, "tonalite": ton, "octave": octave, "clef": cle})
     return resultat
@@ -182,7 +271,7 @@ def lire_proprietes_partition(chemin_mscz):
         valeur = (mt.text or "").strip()
         if not valeur:
             continue
-        m = re.match(r"(?i)parties?\s*[:\-]?\s+(.+)$", nom)
+        m = re.match(r"(?i)(?:parties?|parts?)\s*[:\-]?\s+(.+)$", nom)
         if m:
             instrument = m.group(1).strip()
         elif nom.lower() in instruments:
@@ -204,7 +293,7 @@ def charger_config(chemin_partition):
     voix = lire_proprietes_partition(chemin_partition)
     if voix:
         cfg["voix"] = voix
-        cfg["source_voix"] = "propriétés de la partition"
+        cfg["source_voix"] = T("propriétés de la partition", "score properties")
         return cfg
     perso = os.path.splitext(chemin_partition)[0] + ".parties.json"
     if os.path.isfile(perso):
@@ -212,7 +301,7 @@ def charger_config(chemin_partition):
             cfg["voix"] = json.load(f).get("voix", {})
         cfg["source_voix"] = os.path.basename(perso)
         return cfg
-    cfg["source_voix"] = "parties_config.json (valeurs par défaut)"
+    cfg["source_voix"] = T("parties_config.json (valeurs par défaut)", "parties_config.json (defaults)")
     return cfg
 
 
@@ -236,7 +325,8 @@ def trouver_musescore(cfg):
     for c in candidats:
         if os.path.isfile(c):
             return c
-    raise SystemExit("MuseScore introuvable : indiquez son chemin dans parties_config.json (clé \"musescore\").")
+    raise SystemExit(T("MuseScore introuvable : indiquez son chemin dans parties_config.json (clé \"musescore\").",
+                       "MuseScore not found: set its path in parties_config.json (\"musescore\" key)."))
 
 
 def fichiers_recents_musescore():
@@ -271,13 +361,15 @@ def trouver_partition(cfg, args):
                 if nom + ".mscz" in fichiers:
                     candidats.append(os.path.join(racine, nom + ".mscz"))
         if not candidats:
-            raise SystemExit("Partition « %s.mscz » introuvable.\nEnregistrez-la au moins une fois "
-                             "(Fichier > Enregistrer sous) puis relancez." % nom)
+            raise SystemExit(T("Partition « %s.mscz » introuvable.\nEnregistrez-la au moins une fois "
+                               "(Fichier > Enregistrer sous) puis relancez.",
+                               "Score \"%s.mscz\" not found.\nSave it at least once "
+                               "(File > Save as), then run the plugin again.") % nom)
         # le fichier qui vient d'être enregistré est le plus récent
         return max(candidats, key=os.path.getmtime)
     if args:
         return os.path.abspath(args[0])
-    raise SystemExit("Aucune partition indiquée.")
+    raise SystemExit(T("Aucune partition indiquée.", "No score given."))
 
 
 def attendre_fin_enregistrement(chemin, maxi=15):
@@ -372,13 +464,14 @@ def creer_parties_derivees(score, voix_cfg, journal):
         if not derivees:
             continue
         if len(portees_de[p]) != 1:
-            journal.append("  ! « %s » a plusieurs portées : ignoré." % nom)
+            journal.append(T("  ! « %s » a plusieurs portées : ignoré.", "  ! \"%s\" has several staves: skipped.") % nom)
             continue
         source = staff_par_id[portees_de[p][0]]
         for d in derivees:
             ton = d.get("tonalite", "ut").lower().replace("♭", "b").replace("é", "e")
             if ton not in TONALITES:
-                raise SystemExit("Tonalité inconnue « %s » (possibles : %s)" % (d.get("tonalite"), ", ".join(TONALITES)))
+                raise SystemExit(T("Tonalité inconnue « %s » (possibles : %s)", "Unknown key \"%s\" (possible: %s)")
+                                 % (d.get("tonalite"), ", ".join(TONALITES)))
             diat, chrom = TONALITES[ton]
             octv = int(d.get("octave", 0))
             diat += 7 * octv
@@ -482,7 +575,8 @@ def verifier(controles):
             tpc = int(note.findtext("tpc"))
             ecrit = int(note.findtext("tpc2")) if note.find("tpc2") is not None else tpc
             if tpc_vers_classe(tpc) != pitch % 12 or tpc_vers_classe(ecrit) != (pitch + chrom) % 12:
-                raise SystemExit("Incohérence de transposition détectée (hauteur %d) – export annulé." % pitch)
+                raise SystemExit(T("Incohérence de transposition détectée (hauteur %d) – export annulé.",
+                                   "Transposition inconsistency detected (pitch %d) – export cancelled.") % pitch)
 
 
 def fabriquer_copie(chemin_mscz, dossier_tmp, voix_cfg, journal):
@@ -516,8 +610,8 @@ def lancer(mscore, args, journal, quoi="MuseScore"):
     r = subprocess.run([mscore] + args, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **kw)
     if r.returncode != 0:
         code = r.returncode & 0xFFFFFFFF
-        cause = " (plantage de MuseScore)" if code >= 0xC0000000 else ""
-        journal.append("  ! %s : échec, code 0x%08X%s" % (quoi, code, cause))
+        cause = T(" (plantage de MuseScore)", " (MuseScore crashed)") if code >= 0xC0000000 else ""
+        journal.append(T("  ! %s : échec, code 0x%08X%s", "  ! %s: failed, code 0x%08X%s") % (quoi, code, cause))
         err = [l for l in r.stderr.decode("utf-8", "replace").strip().splitlines()
                if "ERROR" in l or "error" in l][-3:]
         journal.extend("    " + l[-160:] for l in err)
@@ -544,9 +638,9 @@ def dossier_libre(sortie):
     return "%s (%d)" % (sortie, n)
 
 
-NOM_PDF_UNIQUE = "{titre} - conducteur et parties.pdf"
-NOM_PDF_CHOIX = "{titre} - parties choisies.pdf"      # PDF unique d'une sélection partielle
-CONDUCTEUR = "Conducteur"
+NOM_PDF_UNIQUE = T("{titre} - conducteur et parties.pdf", "{titre} - score and parts.pdf")
+NOM_PDF_CHOIX = T("{titre} - parties choisies.pdf", "{titre} - selected parts.pdf")   # sélection partielle
+CONDUCTEUR = T("Conducteur", "Full score")
 
 
 def cle_nom(n):
@@ -654,7 +748,7 @@ def transposer_partie(src_mscz, dst_mscz, d):
         score = racine.find("Score")
         parts = score.findall("Part")
         if len(parts) != 1 or len(parts[0].findall("Staff")) != 1:
-            raise SystemExit("partie source à plusieurs portées")
+            raise SystemExit(T("partie source à plusieurs portées", "source part has several staves"))
         part = parts[0]
         # liens vers le conducteur : inutiles dans une partie autonome
         for parent in racine.iter():
@@ -775,8 +869,10 @@ def fusionner_pdf(fichiers, sortie_pdf, journal):
             importlib.invalidate_caches()
             from pypdf import PdfWriter
         except Exception:
-            journal.append("  ! PDF « conducteur et parties » non créé : module pypdf absent "
-                           "(commande : py -m pip install pypdf)")
+            journal.append(T("  ! PDF « conducteur et parties » non créé : module pypdf absent "
+                             "(commande : py -m pip install pypdf)",
+                             "  ! single PDF not created: pypdf module missing "
+                             "(command: py -m pip install pypdf)"))
             return False
     w = PdfWriter()
     for f in fichiers:
@@ -802,18 +898,19 @@ def ranger_pages(fichiers_png, cible_sans_ext):
 
 def exporter(chemin, cfg, etape=lambda texte: None, sortie=None):
     t0 = time.time()
-    journal = ["Partition : " + chemin]
+    journal = [T("Partition : ", "Score: ") + chemin]
     mscore = trouver_musescore(cfg)
     titre = os.path.splitext(os.path.basename(chemin))[0]
     sortie = sortie or dossier_sortie(chemin, cfg)
     formats = [f.lower() for f in cfg.get("formats", ["pdfunique", "png", "mid", "mp3"])]
     selection = cfg.get("selection")
     if selection is not None:
-        journal.append("Instruments choisis : " + ", ".join(cfg.get("selection_noms", [])))
+        journal.append(T("Instruments choisis : ", "Selected instruments: ") + ", ".join(cfg.get("selection_noms", [])))
     if os.path.isdir(sortie) and cfg.get("ecraser", True):
         n = vider_export(sortie, titre, formats, selection)
         if n:
-            journal.append("Anciens fichiers remplacés (formats cochés seulement) : %d" % n)
+            journal.append(T("Anciens fichiers remplacés (formats cochés seulement) : %d",
+                             "Previous files replaced (checked formats only): %d") % n)
     os.makedirs(sortie, exist_ok=True)
     avec_pdf = "pdf" in formats or "pdfunique" in formats
     base = os.path.join(sortie, titre)
@@ -825,7 +922,7 @@ def exporter(chemin, cfg, etape=lambda texte: None, sortie=None):
         # 1. MIDI / MP3 du conducteur (un appel par format : un plantage n'emporte pas les autres)
         ok = []
         for fmt in [f for f in formats if f in ("mid", "mp3")]:
-            etape("Conducteur : export %s" % fmt.upper())
+            etape(T("Conducteur : export %s", "Full score: %s export") % fmt.upper())
             cible = os.path.join(tmp, "out_" + fmt)
             os.makedirs(cible, exist_ok=True)
             if lancer(mscore, ["-o", os.path.join(cible, "x." + fmt), local], journal, "export " + fmt.upper()):
@@ -835,19 +932,19 @@ def exporter(chemin, cfg, etape=lambda texte: None, sortie=None):
                 if produits:
                     ok.append(fmt.upper())
                 else:
-                    journal.append("  ! export %s : aucun fichier produit" % fmt.upper())
+                    journal.append(T("  ! export %s : aucun fichier produit", "  ! %s export: no file produced") % fmt.upper())
         if ok:
-            journal.append("Conducteur : " + ", ".join(ok))
+            journal.append(T("Conducteur : ", "Full score: ") + ", ".join(ok))
 
         if not avec_pdf and "png" not in formats:
-            journal.append("Terminé en %.0f s → %s" % (time.time() - t0, sortie))
+            journal.append(T("Terminé en %.0f s → %s", "Done in %.0f s → %s") % (time.time() - t0, sortie))
             return sortie, journal
 
         # 2. Extraction de toutes les parties, chacune avec SA mise en page
-        etape("Extraction des parties")
+        etape(T("Extraction des parties", "Extracting parts"))
         parts_json = os.path.join(tmp, "parties.json")
         parties = []        # (nom, fichier mscz, dérivée ?)
-        if lancer(mscore, [local, "--score-parts", "-o", parts_json], journal, "extraction des parties") \
+        if lancer(mscore, [local, "--score-parts", "-o", parts_json], journal, T("extraction des parties", "part extraction")) \
                 and os.path.isfile(parts_json):
             with open(parts_json, encoding="utf-8") as f:
                 data = json.load(f)
@@ -858,8 +955,8 @@ def exporter(chemin, cfg, etape=lambda texte: None, sortie=None):
                 parties.append((nom, fp, False))
 
         # 3. Parties transposées, fabriquées depuis la partie source (même mise en page)
-        etape("Fabrication des parties transposées")
-        journal.append("Parties transposées (d'après %s) :" % cfg.get("source_voix", "?"))
+        etape(T("Fabrication des parties transposées", "Building transposed parts"))
+        journal.append(T("Parties transposées (d'après %s) :", "Transposed parts (from %s):") % cfg.get("source_voix", "?"))
         voix = {k.strip().lower(): v for k, v in cfg.get("voix", {}).items()}
         resultat, n, deja = [], 0, set()
         for nom, fp, _ in parties:
@@ -879,28 +976,31 @@ def exporter(chemin, cfg, etape=lambda texte: None, sortie=None):
                 try:
                     transposer_partie(fp, dst, d)
                     resultat.append((d["nom"], dst, True))
-                    journal.append("  + %-34s ← %s (même mise en page)" % (d["nom"], nom))
+                    journal.append(T("  + %-34s ← %s (même mise en page)", "  + %-34s ← %s (same layout)") % (d["nom"], nom))
                 except SystemExit as e:
                     journal.append("  ! %s : %s" % (d["nom"], e))
         parties = resultat
         if n == 0 and selection is None:
-            journal.append("  aucune (pas de propriété « <instrument> » dans cette partition,\n"
-                           "  ou nom d'instrument différent de celui de la partition)")
+            journal.append(T("  aucune (pas de propriété « <instrument> » dans cette partition,\n"
+                             "  ou nom d'instrument différent de celui de la partition)",
+                             "  none (no \"<instrument>\" property in this score,\n"
+                             "  or instrument name different from the score)"))
         elif n == 0:
-            journal.append("  aucune parmi les instruments choisis")
+            journal.append(T("  aucune parmi les instruments choisis", "  none among the selected instruments"))
 
         # 4. PDF et PNG du conducteur et de toutes les parties : un seul appel à MuseScore
         exts = [x for x in ("pdf", "png") if (avec_pdf if x == "pdf" else x in formats)]
         quoi = " + ".join(x.upper() for x in exts)
-        etape("%s de %s%d partie(s)" % (quoi, "conducteur et " if choisi(cfg, CONDUCTEUR) else "", len(parties)))
+        etape(T("%s de %s%d partie(s)", "%s of %s%d part(s)")
+              % (quoi, T("conducteur et ", "full score and ") if choisi(cfg, CONDUCTEUR) else "", len(parties)))
         dout = os.path.join(tmp, "out")
         os.makedirs(dout, exist_ok=True)
         avec_conducteur = choisi(cfg, CONDUCTEUR)
         sources = ([("conducteur", local)] if avec_conducteur else []) + \
                   [("p%02d" % i, fp) for i, (_, fp, _) in enumerate(parties)]
         if not sources:
-            journal.append("Aucun instrument choisi pour les PDF / PNG")
-            journal.append("Terminé en %.0f s → %s" % (time.time() - t0, sortie))
+            journal.append(T("Aucun instrument choisi pour les PDF / PNG", "No instrument selected for PDF / PNG"))
+            journal.append(T("Terminé en %.0f s → %s", "Done in %.0f s → %s") % (time.time() - t0, sortie))
             return sortie, journal
         job = [{"in": src, "out": [os.path.join(dout, cle + "." + x) for x in exts]}
                for cle, src in sources]
@@ -932,20 +1032,21 @@ def exporter(chemin, cfg, etape=lambda texte: None, sortie=None):
                 else:
                     manquants.append(os.path.basename(cibles[cle]) + " (PNG)")
         nb_p = nb_pdf - (1 if avec_conducteur and nb_pdf else 0)
-        quoi_pdf = ("conducteur + %d parties" if avec_conducteur else "%d parties") % max(0, nb_p)
+        quoi_pdf = (T("conducteur + %d parties", "full score + %d parts") if avec_conducteur
+                    else T("%d parties", "%d parts")) % max(0, nb_p)
         if "pdfunique" in formats and pdfs_ordre:
             modele = NOM_PDF_UNIQUE if selection is None else NOM_PDF_CHOIX
             unique = os.path.join(sortie, modele.format(titre=titre))
             if fusionner_pdf(pdfs_ordre, unique, journal):
-                journal.append("PDF unique : %s → %s" % (quoi_pdf, os.path.basename(unique)))
+                journal.append(T("PDF unique : %s → %s", "Single PDF: %s → %s") % (quoi_pdf, os.path.basename(unique)))
         if "pdf" in formats:
-            journal.append("PDF séparés : " + quoi_pdf)
+            journal.append(T("PDF séparés : ", "Separate PDFs: ") + quoi_pdf)
         if "png" in formats:
-            journal.append("PNG : %d image(s)" % nb_png)
+            journal.append(T("PNG : %d image(s)", "PNG: %d image(s)") % nb_png)
         for m in manquants:
-            journal.append("  ! non produit : " + m)
+            journal.append(T("  ! non produit : ", "  ! not produced: ") + m)
 
-    journal.append("Terminé en %.0f s → %s" % (time.time() - t0, sortie))
+    journal.append(T("Terminé en %.0f s → %s", "Done in %.0f s → %s") % (time.time() - t0, sortie))
     return sortie, journal
 
 
@@ -959,6 +1060,8 @@ def nom_note(pitch, tpc):
     i = tpc + 1
     lettre = "FCGDAEB"[i % 7]
     alt = i // 7 - 2
+    if LANGUE != "fr":                            # notation anglaise : C4 = do central
+        return "%s%s%d" % (lettre, ALT_FR.get(alt, "?"), (pitch - alt) // 12 - 1)
     octave_fr = (pitch - alt) // 12 - 2          # convention française : do3 = do central
     return "%s%s%d" % (NOTES_FR[lettre], ALT_FR.get(alt, "?"), octave_fr)
 
@@ -986,10 +1089,12 @@ def tessiture(score, part, d):
     lo, hi = ZONE_LISIBLE.get(cle_base, (0, 127))
     alerte = None
     if haut[0] + chrom + vu > hi:
-        alerte = "« %s » : écrit très aigu pour la %s (%s) — octave trop haute ?" % (
+        alerte = T("« %s » : écrit très aigu pour la %s (%s) — octave trop haute ?",
+                   "\"%s\": written very high for the %s (%s) — octave too high?") % (
             d["nom"], NOMS_CLES.get(d["clef"], d["clef"]), texte)
     elif bas[0] + chrom + vu < lo:
-        alerte = "« %s » : écrit très grave pour la %s (%s) — octave trop basse ?" % (
+        alerte = T("« %s » : écrit très grave pour la %s (%s) — octave trop basse ?",
+                   "\"%s\": written very low for the %s (%s) — octave too low?") % (
             d["nom"], NOMS_CLES.get(d["clef"], d["clef"]), texte)
     return texte, alerte
 
@@ -1012,7 +1117,7 @@ def plan_export(chemin, cfg):
                 trouve = cle.lower()
                 break
         if p.findtext("show") == "0":
-            nom += "  (masqué)"
+            nom += T("  (masqué)", "  (hidden)")
         if trouve:
             utilisees.add(trouve)
             for d in voix[trouve][1]:
@@ -1031,7 +1136,7 @@ def decrire(d):
     t = TON_EN[d["tonalite"]]
     txt = "%s, %s" % (t, NOMS_CLES.get(d["clef"], d["clef"]))
     if d.get("octave"):
-        txt += ", %+d octave" % d["octave"]
+        txt += ", %+d octave" % d["octave"]          # identique dans les deux langues
     return txt
 
 
@@ -1062,6 +1167,8 @@ def ouvrir_dossier(sortie):
         os.startfile(sortie)
     elif platform.system() == "Darwin":
         subprocess.run(["open", sortie])
+    else:                                       # Linux (suggestion de graffesmusic)
+        subprocess.run(["xdg-open", sortie])
 
 
 def fenetre(chemin, cfg):
@@ -1113,19 +1220,19 @@ def fenetre(chemin, cfg):
     def maj_resume():
         coches = [n for n in instruments if choix_instr[n].get()]
         if len(coches) == len(instruments):
-            resume_instr.set("Tous les instruments (%d)" % len(instruments))
+            resume_instr.set(T("Tous les instruments (%d)", "All instruments (%d)") % len(instruments))
         elif not coches:
-            resume_instr.set("Aucun instrument")
+            resume_instr.set(T("Aucun instrument", "No instrument"))
         else:
             txt = ", ".join(coches)
             if len(txt) > 90:
                 txt = txt[:87] + "…"
-            resume_instr.set("%d sur %d : %s" % (len(coches), len(instruments), txt))
+            resume_instr.set(T("%d sur %d : %s", "%d of %d: %s") % (len(coches), len(instruments), txt))
         maj_bouton()
 
     def fenetre_instruments():
         top = tk.Toplevel(w)
-        top.title("Instruments à exporter")
+        top.title(T("Instruments à exporter", "Instruments to export"))
         top.transient(w)
         top.attributes("-topmost", True)
         top.resizable(False, True)
@@ -1142,7 +1249,7 @@ def fenetre(chemin, cfg):
             tous.set(all(v.get() for v in choix_instr.values()))
             maj_resume()
 
-        ttk.Checkbutton(cadre_h, text="Tous les instruments", variable=tous,
+        ttk.Checkbutton(cadre_h, text=T("Tous les instruments", "All instruments"), variable=tous,
                         command=basculer_tous).pack(anchor="w")
         ttk.Separator(top).pack(fill="x", padx=14, pady=4)
         # liste défilante
@@ -1167,9 +1274,9 @@ def fenetre(chemin, cfg):
             for n in noms:
                 ttk.Checkbutton(liste, text=n, variable=choix_instr[n], command=maj_tous).pack(anchor="w", padx=(12, 0))
 
-        groupe("Conducteur", [CONDUCTEUR])
-        groupe("Parties", [n for n in instruments[1:] if n not in derivees])
-        groupe("Parties transposées", [n for n in instruments[1:] if n in derivees])
+        groupe(T("Conducteur", "Full score"), [CONDUCTEUR])
+        groupe(T("Parties", "Parts"), [n for n in instruments[1:] if n not in derivees])
+        groupe(T("Parties transposées", "Transposed parts"), [n for n in instruments[1:] if n in derivees])
 
         bas = ttk.Frame(top, padding=(14, 8, 14, 12))
         bas.pack(fill="x")
@@ -1203,64 +1310,73 @@ def fenetre(chemin, cfg):
 
     # ---------------- 1. confirmation ----------------
     def page_confirmation():
-        ttk.Label(corps, text="Parties transposées (d'après %s)" % cfg.get("source_voix", "?"),
+        ttk.Label(corps, text=T("Parties transposées (d'après %s)", "Transposed parts (from %s)") % cfg.get("source_voix", "?"),
                   font=("Segoe UI", 10, "bold")).pack(anchor="w")
         arbre = ttk.Treeview(corps, columns=("partie", "regle", "tess"), show="tree headings",
                              height=min(20, len({n for n, _ in lignes}) + nb))
-        for col, txt, larg in (("#0", "Instrument de la partition", 200), ("partie", "Partie générée", 300),
-                               ("regle", "Transposition", 240), ("tess", "Tessiture lue", 150)):
+        for col, txt, larg in (("#0", T("Instrument de la partition", "Score instrument"), 200),
+                               ("partie", T("Partie générée", "Generated part"), 300),
+                               ("regle", T("Transposition", "Transposition"), 240),
+                               ("tess", T("Tessiture lue", "Written range"), 150)):
             arbre.heading(col, text=txt)
             arbre.column(col, width=larg)
         noeuds = {}
         for nom, d in lignes:
             if nom not in noeuds:
                 noeuds[nom] = arbre.insert("", "end", text=nom, open=True,
-                                           values=("" if d else "— (partie normale uniquement)", "", ""))
+                                           values=("" if d else T("— (partie normale uniquement)", "— (normal part only)"), "", ""))
             if d:
                 arbre.insert(noeuds[nom], "end", text="", values=(d["nom"], decrire(d), d.get("tessiture", "")))
         arbre.pack(fill="both", expand=True, pady=(2, 8))
 
         alertes = list(ERREURS_PROPRIETES) + list(ALERTES_TESSITURE)
         for o in orphelines:
-            alertes.append("Propriété « %s » : aucun instrument de ce nom dans la partition." % o)
+            alertes.append(T("Propriété « %s » : aucun instrument de ce nom dans la partition.",
+                             "Property \"%s\": no instrument with this name in the score.") % o)
         if nb == 0 and not alertes:
-            alertes.append("Aucune partie transposée : ajoutez des propriétés « <instrument> » "
-                           "(Fichier > Propriétés de la partition).")
+            alertes.append(T("Aucune partie transposée : ajoutez des propriétés « <instrument> » "
+                             "(Fichier > Propriétés de la partition).",
+                             "No transposed part: add \"<instrument>\" properties "
+                             "(File > Score properties)."))
         for a in alertes:
             ttk.Label(corps, text="⚠ " + a, foreground="#b45309", wraplength=880, justify="left").pack(anchor="w")
-        ttk.Label(corps, text="Tessiture lue = position des notes sur la portée, notation française (do3 = do central).",
+        ttk.Label(corps, text=T("Tessiture lue = position des notes sur la portée, notation française (do3 = do central).",
+                                "Written range = where the notes sit on the staff (C4 = middle C)."),
                   foreground="#666").pack(anchor="w", pady=(6, 0))
         # --- formats ---
-        cadre = ttk.LabelFrame(corps, text=" Formats à exporter ", padding=(10, 4))
+        cadre = ttk.LabelFrame(corps, text=T(" Formats à exporter ", " Formats to export "), padding=(10, 4))
         cadre.pack(fill="x", pady=(10, 0))
         actuels = [x.lower() for x in cfg.get("formats", ["pdfunique", "png", "mid", "mp3"])]
-        for code, texte in (("pdfunique", "PDF unique (conducteur + parties)"), ("pdf", "PDF séparés"),
-                            ("png", "PNG"), ("mid", "MIDI"), ("mp3", "Audio MP3")):
+        for code, texte in (("pdfunique", T("PDF unique (conducteur + parties)", "Single PDF (score + parts)")),
+                            ("pdf", T("PDF séparés", "Separate PDFs")),
+                            ("png", "PNG"), ("mid", "MIDI"), ("mp3", T("Audio MP3", "MP3 audio"))):
             v = tk.BooleanVar(value=code in actuels)
             choix_formats[code] = v
             ttk.Checkbutton(cadre, text=texte, variable=v, command=maj_bouton).pack(side="left", padx=(0, 18))
 
         # --- instruments ---
-        cadre_i = ttk.LabelFrame(corps, text=" Instruments à exporter ", padding=(10, 4))
+        cadre_i = ttk.LabelFrame(corps, text=T(" Instruments à exporter ", " Instruments to export "), padding=(10, 4))
         cadre_i.pack(fill="x", pady=(8, 0))
         ttk.Button(cadre_i, text="Instruments…", command=fenetre_instruments).pack(side="left")
         ttk.Label(cadre_i, textvariable=resume_instr, foreground="#444").pack(side="left", padx=(12, 0))
         maj_resume()
 
         # --- dossier ---
-        cadre2 = ttk.LabelFrame(corps, text=" Dossier d'export ", padding=(10, 4))
+        cadre2 = ttk.LabelFrame(corps, text=T(" Dossier d'export ", " Export folder "), padding=(10, 4))
         cadre2.pack(fill="x", pady=(8, 0))
         if os.path.isdir(sortie):
-            ttk.Label(cadre2, text="« %s » existe déjà :" % os.path.basename(sortie)).pack(anchor="w")
-            ttk.Radiobutton(cadre2, text="Écraser l'export précédent (seuls les formats cochés sont remplacés)",
+            ttk.Label(cadre2, text=T("« %s » existe déjà :", "\"%s\" already exists:") % os.path.basename(sortie)).pack(anchor="w")
+            ttk.Radiobutton(cadre2, text=T("Écraser l'export précédent (seuls les formats cochés sont remplacés)",
+                                           "Overwrite the previous export (only the checked formats are replaced)"),
                             variable=choix_dossier, value="ecraser").pack(anchor="w")
-            ttk.Radiobutton(cadre2, text="Garder l'ancien et créer « %s »" % os.path.basename(dossier_libre(sortie)),
+            ttk.Radiobutton(cadre2, text=T("Garder l'ancien et créer « %s »", "Keep it and create \"%s\"")
+                            % os.path.basename(dossier_libre(sortie)),
                             variable=choix_dossier, value="nouveau").pack(anchor="w")
         else:
             ttk.Label(cadre2, text=sortie, foreground="#444").pack(anchor="w")
 
-        ttk.Button(boutons, text="Annuler", command=w.destroy).pack(side="right")
-        b = ttk.Button(boutons, text="Exporter", command=page_progression)
+        ttk.Button(boutons, text=T("Annuler", "Cancel"), command=w.destroy).pack(side="right")
+        b = ttk.Button(boutons, text=T("Exporter", "Export"), command=page_progression)
         etat_bouton["b"] = b
         b.pack(side="right", padx=(0, 8))
         b.focus_set()
@@ -1301,7 +1417,7 @@ def fenetre(chemin, cfg):
         roue.pack(side="left", padx=(0, 12))
         bloc = ttk.Frame(ligne)
         bloc.pack(side="left", fill="x", expand=True)
-        lib = ttk.Label(bloc, text="Préparation…", font=("Segoe UI", 11, "bold"))
+        lib = ttk.Label(bloc, text=T("Préparation…", "Preparing…"), font=("Segoe UI", 11, "bold"))
         lib.pack(anchor="w")
         info = ttk.Label(bloc, text="", foreground="#666")
         info.pack(anchor="w")
@@ -1310,7 +1426,8 @@ def fenetre(chemin, cfg):
         anim = ttk.Progressbar(corps, mode="indeterminate")
         anim.pack(fill="x")
         anim.start(12)
-        ttk.Label(corps, text="MuseScore travaille en arrière-plan ; vous pouvez continuer à utiliser la partition.",
+        ttk.Label(corps, text=T("MuseScore travaille en arrière-plan ; vous pouvez continuer à utiliser la partition.",
+                                "MuseScore is working in the background; you can keep using the score."),
                   foreground="#666").pack(anchor="w", pady=(10, 0))
 
         file = queue.Queue()
@@ -1324,7 +1441,8 @@ def fenetre(chemin, cfg):
                 file.put(("fin", (sortie, ["  ! " + str(e)])))
             except Exception:
                 import traceback
-                file.put(("fin", (sortie, ["  ! Erreur inattendue :"] + traceback.format_exc().splitlines()[-6:])))
+                file.put(("fin", (sortie, [T("  ! Erreur inattendue :", "  ! Unexpected error:")]
+                                  + traceback.format_exc().splitlines()[-6:])))
 
         threading.Thread(target=travail, daemon=True).start()
 
@@ -1345,7 +1463,8 @@ def fenetre(chemin, cfg):
             etat["i"] += 1
             roue["text"] = "◐◓◑◒"[etat["i"] % 4]
             ecoule = int(time.time() - etat["t0"])
-            info["text"] = "Étape %d / %d   ·   %d:%02d écoulées" % (max(1, etat["n"]), total, ecoule // 60, ecoule % 60)
+            info["text"] = T("Étape %d / %d   ·   %d:%02d écoulées", "Step %d / %d   ·   %d:%02d elapsed") % (
+                max(1, etat["n"]), total, ecoule // 60, ecoule % 60)
             w.after(150, boucle)
 
         boucle()
@@ -1356,10 +1475,10 @@ def fenetre(chemin, cfg):
         w.protocol("WM_DELETE_WINDOW", w.destroy)
         erreur = any(l.lstrip().startswith("!") for l in journal)
         if erreur:
-            ttk.Label(corps, text="⚠ Export terminé avec des erreurs", font=("Segoe UI", 12, "bold"),
+            ttk.Label(corps, text=T("⚠ Export terminé avec des erreurs", "⚠ Export finished with errors"), font=("Segoe UI", 12, "bold"),
                       foreground="#b45309").pack(anchor="w", pady=(4, 6))
         else:
-            ttk.Label(corps, text="✔ Export terminé", font=("Segoe UI", 12, "bold"),
+            ttk.Label(corps, text=T("✔ Export terminé", "✔ Export finished"), font=("Segoe UI", 12, "bold"),
                       foreground="#15803d").pack(anchor="w", pady=(4, 6))
         zone = tk.Text(corps, height=min(22, len(journal) + 1), width=110, wrap="word",
                        font=("Consolas", 9), relief="flat", background="#f6f6f6")
@@ -1371,8 +1490,8 @@ def fenetre(chemin, cfg):
         zone.configure(state="disabled")
         zone.pack(fill="both", expand=True)
 
-        ttk.Button(boutons, text="Fermer", command=w.destroy).pack(side="right")
-        b = ttk.Button(boutons, text="Ouvrir le dossier", command=lambda: (ouvrir_dossier(dossier), w.destroy()))
+        ttk.Button(boutons, text=T("Fermer", "Close"), command=w.destroy).pack(side="right")
+        b = ttk.Button(boutons, text=T("Ouvrir le dossier", "Open folder"), command=lambda: (ouvrir_dossier(dossier), w.destroy()))
         b.pack(side="right", padx=(0, 8))
         b.focus_set()
         w.bind("<Return>", lambda *_: (ouvrir_dossier(dossier), w.destroy()))
@@ -1413,16 +1532,16 @@ def main():
         texte = "\n".join(journal)
         print(texte)
         erreur = any(l.lstrip().startswith("!") for l in journal)
-        notifier("Export MuseScore" + (" – avec erreurs" if erreur else ""), texte, erreur)
+        notifier("Export MuseScore" + (T(" – avec erreurs", " – with errors") if erreur else ""), texte, erreur)
         if cfg.get("ouvrir_dossier", True) and not erreur:
             ouvrir_dossier(sortie)
     except SystemExit as e:
         print(e)
-        notifier("Export MuseScore – erreur", str(e), True)
+        notifier(T("Export MuseScore – erreur", "Export MuseScore – error"), str(e), True)
         sys.exit(1)
     except Exception:
         import traceback
-        notifier("Export MuseScore – erreur inattendue", traceback.format_exc(), True)
+        notifier(T("Export MuseScore – erreur inattendue", "Export MuseScore – unexpected error"), traceback.format_exc(), True)
         sys.exit(2)
 
 

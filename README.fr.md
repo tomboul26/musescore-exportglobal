@@ -4,14 +4,7 @@
 
 Conçu pour les fanfares, harmonies et ensembles à vent, où la même voix doit souvent être distribuée à plusieurs instruments : une partie de flûte aussi en Sib pour une clarinette, une partie de sousaphone aussi en clé de sol pour un saxophone baryton, etc. Ces parties sont fabriquées à l'export, **sans ajouter d'instrument à la partition**.
 
-
-![Fenêtre d'export](screenshots/export-window.png)
-
-*La fenêtre d'export : parties transposées avec leur tessiture lue (et une alerte quand une partie semble à la mauvaise octave), formats, instruments et dossier d'export.*
-
-| Choix des instruments | Parties transposées déclarées dans les propriétés |
-|---|---|
-| ![Choix des instruments](screenshots/instrument-selection.png) | ![Propriétés de la partition](screenshots/score-properties.png) |
+> **Langue :** le plugin suit la langue de l'interface de MuseScore : français si MuseScore est en français, anglais sinon. Le réglage `"langue"` permet d'imposer `"fr"` ou `"en"` (voir *Réglages*).
 
 ---
 
@@ -125,7 +118,7 @@ Elles se déclarent **dans la partition elle-même**, dans *Fichier > Propriét�
 | **Octave** | `+1`, `+2`, `-1`… en plus de la transposition de l'instrument |
 
 - Le premier mot est toujours la tonalité. « Sol fa » veut donc dire : instrument en Sol, clé de fa.
-- Le nom du fichier est complété automatiquement par la tonalité et la clé, par exemple « Trombone Bb clef de sol ». Si la tonalité figure déjà dans le nom (« Basse Bb »), elle n'est pas répétée.
+- Le nom de la partie est complété automatiquement par la tonalité et la clé, par exemple « Trombone Bb clef de sol ». Si la tonalité ou la clé figure déjà dans le nom (« Basse Bb »), elle n'est pas répétée. Avec `"clef_dans_nom": false`, la clé n'est pas ajoutée au nom.
 - Ces propriétés sont **enregistrées dans le `.mscz`** : elles suivent la partition si on la copie, l'envoie ou la renomme.
 
 ### Repères pour les instruments courants
@@ -152,6 +145,8 @@ Le fichier `parties_config.json`, dans le dossier du plugin :
 
 | Clé | Rôle | Par défaut |
 |---|---|---|
+| `"langue"` | Langue de l'interface : `"auto"` (langue de MuseScore), `"fr"` ou `"en"` | `"auto"` |
+| `"clef_dans_nom"` | `false` pour ne pas ajouter la clé au nom des parties transposées (« Trompette C » au lieu de « Trompette C clef de sol ») | `true` |
 | `"confirmation"` | `false` pour exporter directement, sans fenêtre de confirmation | `true` |
 | `"formats"` | Formats cochés par défaut : `pdfunique`, `pdf`, `png`, `mid`, `mp3` | les derniers utilisés |
 | `"dossier_sortie"` | Nom du dossier d'export | `"{titre} - export"` |
@@ -166,7 +161,6 @@ Si le lanceur `pyw` n'est pas trouvé, indiquer le chemin de `pythonw.exe` dans 
 
 - Les changements de clé en cours de morceau ne sont pas recopiés dans les parties transposées.
 - Un instrument à plusieurs portées (piano, harpe…) ne peut pas servir de source à une partie transposée.
-- L'interface et les noms de fichiers sont en français.
 - Testé sous Windows avec MuseScore Studio 4.7. macOS et Linux n'ont pas encore été testés.
 
 ---

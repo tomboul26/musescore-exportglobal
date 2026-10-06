@@ -1,4 +1,6 @@
 {
+  "langue": "auto",
+  "clef_dans_nom": true,
   "confirmation": true,
   "musescore": "",
   "formats": [
