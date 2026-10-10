@@ -105,7 +105,7 @@ They are declared **in the score itself**, in *File > Score properties*, then **
 
 | Property | Value | Resulting parts |
 |---|---|---|
-| `Flute` | `Bb g ; Alto sax = Eb g` | Flute Bb treble clef, Alto sax Eb treble clef |
+| `Flute` | `Bb g ; Alto sax = Eb g` | Flute Bb treble clef, Alto sax |
 | `Trombone` | `Bb f ; C g +1` | Trombone Bb bass clef, Trombone C treble clef |
 | `Sousaphone` | `Bass C = C f8vb ; Bass Bb = Bb g15mb ; Baritone = Eb g15mb -1` | three bass parts |
 
@@ -118,7 +118,7 @@ They are declared **in the score itself**, in *File > Score properties*, then **
 | **Octave** | `+1`, `+2`, `-1`… on top of the instrument's transposition |
 
 - The first word is always the key.
-- The part name is completed automatically with key and clef, for example "Trombone Bb treble clef". If the key or the clef is already in the name ("Bass Bb"), it is not repeated. Set `"clef_dans_nom": false` to leave the clef out of the name.
+- With "Name = …", the part gets exactly that name ("Alto sax = Eb g" gives "Alto sax"). Without a name, the instrument name is completed automatically with key and clef, for example "Trombone Bb treble clef". If the key or the clef is already in the name ("Bass Bb"), it is not repeated. Set `"clef_dans_nom": false` to leave the clef out of the name.
 - These properties are **stored inside the `.mscz`**: they travel with the score when it is copied, sent or renamed.
 
 ### Common instruments

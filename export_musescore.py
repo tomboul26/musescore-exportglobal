@@ -249,7 +249,9 @@ def analyser_propriete(instrument, valeur):
         if not ton:
             raise SystemExit(T("Propriété « %s » : tonalité manquante dans « %s »",
                                "Property \"%s\": key missing in \"%s\"") % (instrument, morceau))
-        nom = nom_complet(nom or instrument, ton, cle)
+        # nom donné dans la propriété (« Sax alto = Mib sol ») : gardé tel quel ;
+        # sinon nom de l'instrument complété par la tonalité et la clé
+        nom = nom if nom else nom_complet(instrument, ton, cle)
         resultat.append({"nom": nom, "tonalite": ton, "octave": octave, "clef": cle})
     return resultat
 

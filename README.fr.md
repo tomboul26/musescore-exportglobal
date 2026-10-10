@@ -105,7 +105,7 @@ Elles se déclarent **dans la partition elle-même**, dans *Fichier > Propriét�
 
 | Propriété | Valeur | Parties obtenues |
 |---|---|---|
-| `Flûte` | `Sib sol ; Sax alto = Mib sol` | Flûte Bb clef de sol, Sax alto Eb clef de sol |
+| `Flûte` | `Sib sol ; Sax alto = Mib sol` | Flûte Bb clef de sol, Sax alto |
 | `Trombone` | `Sib fa ; Ut sol +1` | Trombone Bb clef de fa, Trombone C clef de sol |
 | `Sousaphone` | `Basse Ut = Ut fa8 ; Basse Sib = Sib sol15 ; Baryton = Mib sol15 -1` | trois parties de basse |
 
@@ -118,7 +118,7 @@ Elles se déclarent **dans la partition elle-même**, dans *Fichier > Propriét�
 | **Octave** | `+1`, `+2`, `-1`… en plus de la transposition de l'instrument |
 
 - Le premier mot est toujours la tonalité. « Sol fa » veut donc dire : instrument en Sol, clé de fa.
-- Le nom de la partie est complété automatiquement par la tonalité et la clé, par exemple « Trombone Bb clef de sol ». Si la tonalité ou la clé figure déjà dans le nom (« Basse Bb »), elle n'est pas répétée. Avec `"clef_dans_nom": false`, la clé n'est pas ajoutée au nom.
+- Avec « Nom = … », la partie porte exactement ce nom (« Sax alto = Mib sol » donne « Sax alto »). Sans nom, celui de l'instrument est complété automatiquement par la tonalité et la clé, par exemple « Trombone Bb clef de sol ». Si la tonalité ou la clé figure déjà dans le nom (« Basse Bb »), elle n'est pas répétée. Avec `"clef_dans_nom": false`, la clé n'est pas ajoutée au nom.
 - Ces propriétés sont **enregistrées dans le `.mscz`** : elles suivent la partition si on la copie, l'envoie ou la renomme.
 
 ### Repères pour les instruments courants
