@@ -11,7 +11,7 @@ Built for brass bands, concert bands and wind ensembles, where the same line oft
 ## Features
 
 - **One-step export** of the full score and every part.
-- **Transposed parts**: any staff of the score can produce one or more parts for other instruments, with a different key, clef or octave. They are declared in the score properties.
+- **Transposed parts**: any staff of the score can produce one or more parts for other instruments, with a different key, clef or octave. They are declared in the score properties, by hand or with the included editor ("Export global – Parties transposées").
 - **Same layout**: a transposed part keeps the layout of the part it comes from.
 - **Choice of formats** with check boxes:
   - single PDF (score + parts);
@@ -50,12 +50,14 @@ Plugins\
 └── ExportGlobal\
     ├── export_global.qml
     ├── export_musescore.py
-    └── parties_config.json
+    ├── parties_config.json
+    ├── parties_transposees.qml
+    └── parties_transposees.js
 ```
 
 ### 3. Enable the plugin and choose a shortcut
 
-1. *Plugins > Manage plugins*: click **Export global**, then **Enable**.
+1. *Plugins > Manage plugins*: click **Export global**, then **Enable**. Do the same for **Export global – Parties transposées** (the transposed parts editor).
 2. **Edit shortcut**, for example **Ctrl+Shift+X**. This shortcut only exists inside MuseScore and does not conflict with the operating system.
 
 ---
@@ -92,9 +94,22 @@ When only some instruments are exported, the files of the other instruments alre
 
 ## Declaring transposed parts
 
+### With the editor (easiest)
+
+*Plugins > Export global – Parties transposées* opens the list of the score's parts:
+
+- **+** next to a part adds a transposed part made from that instrument;
+- for each one: part **name** (empty = automatic), **key**, **clef** and **octave** from lists;
+- the final name of each part is shown on the right; two parts with the same name are flagged;
+- **✕** removes a transposed part, **Save** writes everything to the score properties (undo with Ctrl+Z).
+
+The editor reads and writes the same properties as below: both ways can be mixed.
+
+### By hand
+
 They are declared **in the score itself**, in *File > Score properties*, then **New property**:
 
-- **Name**: the instrument name as it appears in the score, for example `Flute` or `Sousaphone`.
+- **Name**: the instrument name as it appears in the score, for example `Flute` or `Sousaphone`, or the name of its part (the part tab, for example `Clarinet` for the instrument "Clarinet in Bb").
 - **Value**: one or more parts separated by `;`, each one written as:
 
 ```
@@ -170,7 +185,7 @@ If the `pyw` launcher is not found, put the path to `pythonw.exe` in `export_glo
 |---|---|
 | Nothing happens when pressing the shortcut | Check that Python is installed with the "py launcher" and that the plugin is enabled |
 | "Score … not found" | Save the score once (*File > Save as*) |
-| "No transposed part" | Check that the property name is exactly the instrument name in the score |
+| "No transposed part" | Check that the property name is exactly the instrument name or its part name |
 | "word not understood" | A property value contains an unknown word: check key, clef and octave |
 | No single PDF | Install the PDF module: `py -m pip install pypdf` |
 

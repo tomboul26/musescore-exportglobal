@@ -11,7 +11,7 @@ Conçu pour les fanfares, harmonies et ensembles à vent, où la même voix doit
 ## Fonctionnalités
 
 - **Export en un geste** du conducteur et de toutes les parties.
-- **Parties transposées** : une portée de la partition peut donner une ou plusieurs parties pour d'autres instruments, avec une autre tonalité, une autre clé ou un autre décalage d'octave. Elles sont décrites dans les propriétés de la partition.
+- **Parties transposées** : une portée de la partition peut donner une ou plusieurs parties pour d'autres instruments, avec une autre tonalité, une autre clé ou un autre décalage d'octave. Elles sont décrites dans les propriétés de la partition, à la main ou avec l'éditeur fourni (« Export global – Parties transposées »).
 - **Même mise en page** : une partie transposée reprend la mise en page de sa partie d'origine.
 - **Choix des formats** par cases à cocher :
   - PDF unique (conducteur + parties) ;
@@ -50,12 +50,14 @@ Plugins\
 └── ExportGlobal\
     ├── export_global.qml
     ├── export_musescore.py
-    └── parties_config.json
+    ├── parties_config.json
+    ├── parties_transposees.qml
+    └── parties_transposees.js
 ```
 
 ### 3. Activer le plugin et choisir un raccourci
 
-1. *Plugins > Gérer les plugins* : cliquer sur **Export global**, puis **Activer**.
+1. *Plugins > Gérer les plugins* : cliquer sur **Export global**, puis **Activer**. Faire de même pour **Export global – Parties transposées** (l'éditeur des parties transposées).
 2. **Modifier le raccourci**, par exemple **Ctrl+Maj+X**. Ce raccourci n'existe que dans MuseScore et n'entre pas en conflit avec Windows.
 
 ---
@@ -92,9 +94,22 @@ Lors d'un export limité à certains instruments, les fichiers des autres instru
 
 ## Décrire les parties transposées
 
+### Avec l'éditeur (le plus simple)
+
+*Plugins > Export global – Parties transposées* ouvre la liste des parties de la partition :
+
+- **+** à côté d'une partie ajoute une partie transposée tirée de cet instrument ;
+- pour chacune : **nom** de la partie (vide = automatique), **tonalité**, **clé** et **octave** dans des listes ;
+- le nom final de chaque partie s'affiche à droite ; deux parties du même nom sont signalées ;
+- **✕** supprime une partie transposée, **Enregistrer** écrit le tout dans les propriétés de la partition (annulable avec Ctrl+Z).
+
+L'éditeur lit et écrit les mêmes propriétés que ci-dessous : on peut passer de l'un à l'autre.
+
+### À la main
+
 Elles se déclarent **dans la partition elle-même**, dans *Fichier > Propriétés de la partition*, puis **Nouvelle propriété** :
 
-- **Nom** : le nom de l'instrument tel qu'il apparaît dans la partition, par exemple `Flûte` ou `Sousaphone`.
+- **Nom** : le nom de l'instrument tel qu'il apparaît dans la partition, par exemple `Flûte` ou `Sousaphone`, ou le nom de sa partie (onglet de la partie, par exemple `Clarinette` pour l'instrument « Clarinette en Sib »).
 - **Valeur** : une ou plusieurs parties séparées par `;`, chacune sous la forme :
 
 ```
@@ -171,7 +186,7 @@ Si le lanceur `pyw` n'est pas trouvé, indiquer le chemin de `pythonw.exe` dans 
 |---|---|
 | Rien ne se passe au raccourci | Vérifier que Python est installé avec le « py launcher » et que le plugin est activé |
 | « Partition introuvable » | Enregistrer la partition une première fois (*Fichier > Enregistrer sous*) |
-| « Aucune partie transposée » | Vérifier que le nom de la propriété est exactement celui de l'instrument dans la partition |
+| « Aucune partie transposée » | Vérifier que le nom de la propriété est exactement celui de l'instrument ou de sa partie |
 | « mot non compris » | Une valeur de propriété contient un mot inconnu : vérifier tonalité, clé et octave |
 | Pas de PDF unique | Installer le module PDF : `py -m pip install pypdf` |
 

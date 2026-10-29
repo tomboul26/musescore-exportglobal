@@ -10,7 +10,7 @@ import QtQuick
 import MuseScore 3.0
 
 MuseScore {
-    version: "1.2"
+    version: "1.3.1"
     title: "Export global"
     description: "Saves, then exports the full score, all parts (including the transposed parts declared in the score properties), PNG, MIDI and MP3. / Enregistre puis exporte conducteur, toutes les parties (y compris les parties transposées définies dans les propriétés de la partition), PNG, MIDI et MP3."
     requiresScore: true

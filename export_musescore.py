@@ -264,6 +264,7 @@ def lire_proprietes_partition(chemin_mscz):
     voix = {}
     with zipfile.ZipFile(chemin_mscz) as z:
         racine = ET.fromstring(z.read(fichier_principal(z)))
+        lire_noms_extraits(z)
     score = racine.find("Score")
     instruments = set()
     for p in score.findall("Part"):
@@ -430,10 +431,37 @@ def set_tag(parent, tag, texte, apres=None):
     return el
 
 
+# nom des parties MuseScore (« Clarinette ») -> instrument (« Clarinette en Sib »), lu dans Excerpts/
+NOMS_EXTRAITS = {}
+
+
+def lire_noms_extraits(z):
+    """Une propriété peut porter le nom de la partie (onglet) au lieu du nom de l'instrument."""
+    NOMS_EXTRAITS.clear()
+    for n in z.namelist():
+        if not (n.startswith("Excerpts/") and n.endswith(".mscx")):
+            continue
+        try:
+            sc = ET.fromstring(z.read(n)).find("Score")
+        except ET.ParseError:
+            continue
+        parts = sc.findall("Part") if sc is not None else []
+        nom = None
+        for mt in sc.findall("metaTag") if sc is not None else []:
+            if mt.get("name") == "partName" and (mt.text or "").strip():
+                nom = mt.text.strip()
+        nom = nom or (sc.findtext("name") or "").strip()
+        if nom and len(parts) == 1 and parts[0].findtext("trackName"):
+            NOMS_EXTRAITS.setdefault(parts[0].findtext("trackName").strip().lower(), []).append(nom)
+
+
 def noms_possibles(part):
     noms = [part.findtext("trackName"), part.findtext("Instrument/longName"),
             part.findtext("Instrument/trackName")]
-    return [n.strip() for n in noms if n and n.strip()]
+    noms = [n.strip() for n in noms if n and n.strip()]
+    if noms:
+        noms += NOMS_EXTRAITS.get(noms[0].lower(), [])
+    return noms
 
 
 def nom_instrument(part):
@@ -587,6 +615,7 @@ def fabriquer_copie(chemin_mscz, dossier_tmp, voix_cfg, journal):
         noms = zin.namelist()
         principal = fichier_principal(zin)
         racine = ET.fromstring(zin.read(principal))
+        lire_noms_extraits(zin)
         score = racine.find("Score")
         n = creer_parties_derivees(score, voix_cfg, journal)
         donnees = b'<?xml version="1.0" encoding="UTF-8"?>\n' + ET.tostring(racine, encoding="utf-8")
