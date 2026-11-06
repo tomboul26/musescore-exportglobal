@@ -13,7 +13,7 @@ import "parties_transposees.js" as P
 
 MuseScore {
     id: plugin
-    version: "1.3.1"
+    version: "1.3.2"
     title: "Export global – Parties transposées"
     description: "Edit the transposed parts exported by Export global (stored in the score properties). / Modifier les parties transposées exportées par Export global (enregistrées dans les propriétés de la partition)."
     pluginType: "dialog"
@@ -229,6 +229,7 @@ MuseScore {
                         Layout.fillWidth: true
                         spacing: 6
                         property bool entete: genre === "partie"
+                        property int ligne: index     // onActivated(index) masque l'index de la ligne
 
                         // ---- en-tête : nom de la partie d'origine et bouton « + »
                         Button {
@@ -269,14 +270,14 @@ MuseScore {
                             Layout.preferredWidth: 90
                             model: fr ? P.TONS_FR : P.TONS_EN
                             currentIndex: ton
-                            onActivated: { lignes.setProperty(index, "ton", currentIndex); plugin.verifier() }
+                            onActivated: { lignes.setProperty(rang.ligne, "ton", currentIndex); plugin.verifier() }
                         }
                         ComboBox {
                             visible: !rang.entete
                             Layout.preferredWidth: 160
                             model: fr ? P.CLES_TEXTE_FR : P.CLES_TEXTE_EN
                             currentIndex: cle
-                            onActivated: { lignes.setProperty(index, "cle", currentIndex); plugin.verifier() }
+                            onActivated: { lignes.setProperty(rang.ligne, "cle", currentIndex); plugin.verifier() }
                         }
                         SpinBox {
                             visible: !rang.entete
