@@ -163,6 +163,7 @@ The `parties_config.json` file, in the plugin folder:
 | `"clef_dans_nom"` | `false` to leave the clef out of transposed part names ("Trumpet C" instead of "Trumpet C treble clef") | `true` |
 | `"confirmation"` | `false` to export straight away, without the confirmation window | `true` |
 | `"formats"` | Formats checked by default: `pdfunique`, `pdf`, `png`, `mid`, `mp3` | last used |
+| `"png_dpi"` | PNG resolution in dpi (150: A4 page of 1754 × 1240 px, about 200 KB; 300 for finer printing) | `150` |
 | `"dossier_sortie"` | Export folder name (`{titre}` = score title) | `"{titre} - export"` |
 | `"musescore"` | Path to `MuseScore4.exe`, if not found automatically | (automatic) |
 | `"voix"` | Default transposed parts, for scores without properties | `{}` |
