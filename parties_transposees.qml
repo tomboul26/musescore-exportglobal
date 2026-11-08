@@ -13,7 +13,7 @@ import "parties_transposees.js" as P
 
 MuseScore {
     id: plugin
-    version: "1.3.2"
+    version: "1.3.3"
     title: "Export global – Parties transposées"
     description: "Edit the transposed parts exported by Export global (stored in the score properties). / Modifier les parties transposées exportées par Export global (enregistrées dans les propriétés de la partition)."
     pluginType: "dialog"
