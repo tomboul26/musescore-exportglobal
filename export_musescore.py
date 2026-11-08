@@ -1038,7 +1038,9 @@ def exporter(chemin, cfg, etape=lambda texte: None, sortie=None):
         fjob = os.path.join(tmp, "job.json")
         with open(fjob, "w", encoding="utf-8") as f:
             json.dump(job, f, ensure_ascii=False)
-        lancer(mscore, ["-j", fjob], journal, "export " + quoi)
+        # résolution des PNG imposée (sinon celle des préférences de MuseScore, souvent 1200 dpi)
+        opts_png = ["-r", str(int(cfg.get("png_dpi", 150)))] if "png" in exts else []
+        lancer(mscore, opts_png + ["-j", fjob], journal, "export " + quoi)
 
         cibles = {"conducteur": base}
         for i, (nom, _, _) in enumerate(parties):
