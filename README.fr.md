@@ -164,6 +164,7 @@ Le fichier `parties_config.json`, dans le dossier du plugin :
 | `"clef_dans_nom"` | `false` pour ne pas ajouter la clé au nom des parties transposées (« Trompette C » au lieu de « Trompette C clef de sol ») | `true` |
 | `"confirmation"` | `false` pour exporter directement, sans fenêtre de confirmation | `true` |
 | `"formats"` | Formats cochés par défaut : `pdfunique`, `pdf`, `png`, `mid`, `mp3` | les derniers utilisés |
+| `"png_dpi"` | Résolution des PNG en dpi (150 : page A4 de 1754 × 1240 px, environ 200 Ko ; 300 pour une impression plus fine) | `150` |
 | `"dossier_sortie"` | Nom du dossier d'export | `"{titre} - export"` |
 | `"musescore"` | Chemin de `MuseScore4.exe`, si non trouvé automatiquement | (automatique) |
 | `"voix"` | Parties transposées par défaut, pour les partitions sans propriétés | `{}` |
