@@ -4,8 +4,10 @@
   "confirmation": true,
   "musescore": "",
   "formats": [
+    "pdfunique",
     "png",
-    "mid"
+    "mid",
+    "mp3"
   ],
   "formats_v": 2,
   "png_dpi": 150,
